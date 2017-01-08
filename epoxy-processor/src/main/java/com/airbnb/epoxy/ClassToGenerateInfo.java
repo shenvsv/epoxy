@@ -37,7 +37,7 @@ public class ClassToGenerateInfo {
 
   private final TypeName originalClassName;
   private final TypeName originalClassNameWithoutType;
-  private final TypeName parameterizedClassName;
+  private final TypeName parametrizedClassName;
   private final ClassName generatedClassName;
   private final boolean isOriginalClassAbstract;
   private final Set<AttributeInfo> attributeInfo = new HashSet<>();
@@ -47,7 +47,7 @@ public class ClassToGenerateInfo {
   private final Types typeUtils;
 
   public ClassToGenerateInfo(Types typeUtils, TypeElement originalClassName,
-      ClassName generatedClassName, boolean isOriginalClassAbstract) {
+      ClassName generatedClassName) {
     this.typeUtils = typeUtils;
     this.originalClassName = ParameterizedTypeName.get(originalClassName.asType());
     this.originalClassNameWithoutType = ClassName.get(originalClassName);
@@ -62,18 +62,18 @@ public class ClassToGenerateInfo {
     if (!typeVariableNames.isEmpty()) {
       TypeVariableName[] typeArguments =
           typeVariableNames.toArray(new TypeVariableName[typeVariableNames.size()]);
-      this.parameterizedClassName = ParameterizedTypeName.get(generatedClassName, typeArguments);
+      this.parametrizedClassName = ParameterizedTypeName.get(generatedClassName, typeArguments);
     } else {
-      this.parameterizedClassName = generatedClassName;
+      this.parametrizedClassName = generatedClassName;
     }
 
     this.generatedClassName = generatedClassName;
-    this.isOriginalClassAbstract = isOriginalClassAbstract;
+    this.isOriginalClassAbstract = originalClassName.getModifiers().contains(Modifier.ABSTRACT);
   }
 
   /**
-   * Get information about constructors of the original class so we can duplicate
-     them in the generated class and call through to super with the proper parameters
+   * Get information about constructors of the original class so we can duplicate them in the
+   * generated class and call through to super with the proper parameters
    */
   private void collectOriginalClassConstructors(TypeElement originalClass) {
     for (Element subElement : originalClass.getEnclosedElements()) {
@@ -87,8 +87,8 @@ public class ClassToGenerateInfo {
   }
 
   /**
-   * Get information about methods returning class type of the original class so we can
-   * duplicate them in the generated class for chaining purposes
+   * Get information about methods returning class type of the original class so we can duplicate
+   * them in the generated class for chaining purposes
    */
   private void collectMethodsReturningClassType(TypeElement originalClass) {
     TypeElement clazz = originalClass;
@@ -174,7 +174,7 @@ public class ClassToGenerateInfo {
   }
 
   public TypeName getParameterizedGeneratedName() {
-    return parameterizedClassName;
+    return parametrizedClassName;
   }
 
   private void removeMethodIfDuplicatedBySetter(Collection<AttributeInfo> attributeInfos) {

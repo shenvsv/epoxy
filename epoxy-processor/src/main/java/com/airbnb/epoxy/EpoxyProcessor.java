@@ -68,6 +68,7 @@ import static javax.lang.model.element.Modifier.STATIC;
 public class EpoxyProcessor extends AbstractProcessor {
   private static final String GENERATED_CLASS_NAME_SUFFIX = "_";
   private static final String EPOXY_MODEL_TYPE = "com.airbnb.epoxy.EpoxyModel<?>";
+  private static final String EPOXY_MODEL_WITH_VIEW_TYPE = "com.airbnb.epoxy.EpoxyModelWithView";
 
   private Filer filer;
   private Messager messager;
@@ -234,9 +235,13 @@ public class EpoxyProcessor extends AbstractProcessor {
 
     if (classToGenerateInfo == null) {
       ClassName generatedClassName = getGeneratedClassName(classElement);
-      boolean isAbstract = classElement.getModifiers().contains(Modifier.ABSTRACT);
-      classToGenerateInfo = new ClassToGenerateInfo(typeUtils, classElement, generatedClassName,
-          isAbstract);
+      boolean isViewModel = isSubtypeOfType(classElement, EPOXY_MODEL_WITH_VIEW_TYPE);
+      if (isViewModel) {
+        if (classElement.getModifiers().contains(Modifier.ABSTRACT)) {
+          List<? extends Element> enclosedElements = classElement.getEnclosedElements();
+        }
+      }
+      classToGenerateInfo = new ClassToGenerateInfo(typeUtils, classElement, generatedClassName);
       modelClassMap.put(classElement, classToGenerateInfo);
     }
 
@@ -347,6 +352,10 @@ public class EpoxyProcessor extends AbstractProcessor {
     return isSubtypeOfType(type, EPOXY_MODEL_TYPE);
   }
 
+  private boolean isSubtypeOfType(Element element, String otherType) {
+    return isSubtypeOfType(element.asType(), otherType);
+  }
+
   private boolean isSubtypeOfType(TypeMirror typeMirror, String otherType) {
     if (otherType.equals(typeMirror.toString())) {
       return true;
@@ -394,7 +403,7 @@ public class EpoxyProcessor extends AbstractProcessor {
       return;
     }
 
-    TypeSpec generatedClass = TypeSpec.classBuilder(info.getGeneratedName())
+    TypeSpec.Builder builder = TypeSpec.classBuilder(info.getGeneratedName())
         .addJavadoc("Generated file. Do not modify!")
         .addModifiers(Modifier.PUBLIC)
         .superclass(info.getOriginalClassName())
@@ -405,10 +414,11 @@ public class EpoxyProcessor extends AbstractProcessor {
         .addMethod(generateReset(info))
         .addMethod(generateEquals(info))
         .addMethod(generateHashCode(info))
-        .addMethod(generateToString(info))
-        .build();
+        .addMethod(generateToString(info));
 
-    JavaFile.builder(info.getGeneratedName().packageName(), generatedClass)
+
+
+    JavaFile.builder(info.getGeneratedName().packageName(), builder.build())
         .build()
         .writeTo(filer);
   }
@@ -535,7 +545,7 @@ public class EpoxyProcessor extends AbstractProcessor {
         }
       } else {
         builder.beginControlFlow("if ($L != null && that.$L == null"
-            + " || $L == null && that.$L != null)",
+                + " || $L == null && that.$L != null)",
             name, name, name, name)
             .addStatement("return false")
             .endControlFlow();
